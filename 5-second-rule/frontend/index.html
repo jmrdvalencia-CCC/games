@@ -1,0 +1,487 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>5 Seconds Rule</title>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:'Segoe UI',sans-serif;background:#0f172a;color:#f1f5f9;min-height:100vh;display:flex;align-items:center;justify-content:center}
+  .screen{display:none;width:100%;max-width:480px;padding:24px}
+  .screen.active{display:block}
+  h1{font-size:2rem;font-weight:800;color:#f59e0b;text-align:center;margin-bottom:4px}
+  h2{font-size:1.3rem;font-weight:700;margin-bottom:16px;color:#fbbf24}
+  .subtitle{text-align:center;color:#94a3b8;margin-bottom:32px;font-size:.9rem}
+  .card{background:#1e293b;border-radius:16px;padding:24px;margin-bottom:16px}
+  input{width:100%;padding:12px 16px;border-radius:10px;border:2px solid #334155;background:#0f172a;color:#f1f5f9;font-size:1rem;margin-bottom:12px;outline:none;transition:border .2s}
+  input:focus{border-color:#f59e0b}
+  button{width:100%;padding:13px;border-radius:10px;border:none;font-size:1rem;font-weight:700;cursor:pointer;transition:all .15s}
+  .btn-primary{background:#f59e0b;color:#0f172a}
+  .btn-primary:hover{background:#fbbf24}
+  .btn-secondary{background:#334155;color:#f1f5f9;margin-top:8px}
+  .btn-secondary:hover{background:#475569}
+  .btn-danger{background:#ef4444;color:#fff;margin-top:8px}
+  .btn-danger:hover{background:#dc2626}
+  .btn-success{background:#22c55e;color:#fff}
+  .btn-success:hover{background:#16a34a}
+  .code-display{font-size:2.5rem;font-weight:900;letter-spacing:.3em;color:#f59e0b;text-align:center;padding:16px;background:#0f172a;border-radius:12px;margin:12px 0}
+  .badge{display:inline-block;padding:4px 10px;border-radius:20px;font-size:.75rem;font-weight:700;background:#334155;color:#94a3b8;margin:2px}
+  .badge.pitcher{background:#7c3aed;color:#fff}
+  .player-list{list-style:none}
+  .player-list li{padding:10px 14px;background:#0f172a;border-radius:8px;margin-bottom:6px;display:flex;justify-content:space-between;align-items:center}
+  .word-input-row{display:flex;gap:8px;margin-bottom:12px}
+  .word-input-row input{margin:0;flex:1}
+  .word-input-row button{width:auto;padding:12px 20px}
+  .submissions-area{margin-top:16px}
+  .section-label{font-size:.75rem;font-weight:700;text-transform:uppercase;color:#64748b;margin-bottom:8px;letter-spacing:.05em}
+  .word-tag{display:inline-flex;align-items:center;gap:6px;background:#0f172a;border:1px solid #334155;border-radius:8px;padding:6px 12px;margin:4px;font-size:.9rem}
+  .word-tag .remove-btn{background:none;border:none;color:#ef4444;cursor:pointer;font-size:1rem;padding:0;width:auto;font-weight:700}
+  .word-tag.duplicate{border-color:#475569;color:#64748b}
+  .score-row{display:flex;justify-content:space-between;padding:10px 14px;background:#0f172a;border-radius:8px;margin-bottom:6px}
+  .score-row.winner{background:#422006;border:1px solid #f59e0b}
+  .score-pts{font-weight:800;color:#f59e0b;font-size:1.1rem}
+  .round-badge{background:#7c3aed;color:#fff;padding:4px 12px;border-radius:20px;font-size:.8rem;font-weight:700}
+  .status-dot{width:8px;height:8px;border-radius:50%;background:#22c55e;display:inline-block;margin-right:6px;animation:pulse 1.5s infinite}
+  @keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+  .info-box{background:#0f172a;border-left:3px solid #f59e0b;padding:12px 16px;border-radius:0 8px 8px 0;margin-bottom:12px;font-size:.9rem;color:#94a3b8}
+  .divider{border:none;border-top:1px solid #1e293b;margin:16px 0}
+  #toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#1e293b;color:#f1f5f9;padding:12px 24px;border-radius:10px;font-size:.9rem;opacity:0;transition:opacity .3s;pointer-events:none;z-index:999;border:1px solid #334155}
+</style>
+</head>
+<body>
+
+<!-- LANDING -->
+<div class="screen active" id="screen-landing">
+  <h1>⏱ 5 Seconds Rule</h1>
+  <p class="subtitle">Name 3 things before time runs out!</p>
+  <div class="card">
+    <button class="btn-primary" onclick="showScreen('screen-pitcher-setup')">🎤 I'm the Pitcher</button>
+    <button class="btn-secondary" onclick="showScreen('screen-hitter-join')">🏏 I'm a Hitter</button>
+  </div>
+  <div class="card">
+    <button class="btn-danger" onclick="resetAll()">🗑 Reset All Data</button>
+  </div>
+</div>
+
+<!-- PITCHER SETUP -->
+<div class="screen" id="screen-pitcher-setup">
+  <div class="card">
+    <h2>🎤 Pitcher Setup</h2>
+    <input id="pitcher-name" placeholder="Your name" maxlength="20"/>
+    <button class="btn-primary" onclick="createRoom()">Create Room</button>
+    <button class="btn-secondary" onclick="showScreen('screen-landing')">← Back</button>
+  </div>
+</div>
+
+<!-- PITCHER LOBBY -->
+<div class="screen" id="screen-pitcher-lobby">
+  <div class="card">
+    <h2>🎤 Pitcher Lobby</h2>
+    <p class="section-label">Room Code</p>
+    <div class="code-display" id="lobby-code"></div>
+    <p style="text-align:center;color:#64748b;font-size:.85rem;margin-bottom:16px">Share this code with hitters</p>
+    <p class="section-label">Players Joined</p>
+    <ul class="player-list" id="lobby-players"></ul>
+  </div>
+  <div class="card">
+    <button class="btn-primary" onclick="startRound()">▶ Start Round</button>
+    <button class="btn-danger" onclick="endGame()">🏁 End Game</button>
+  </div>
+</div>
+
+<!-- HITTER JOIN -->
+<div class="screen" id="screen-hitter-join">
+  <div class="card">
+    <h2>🏏 Join Room</h2>
+    <input id="join-code" placeholder="Room Code (e.g. AB3XY)" maxlength="5" style="text-transform:uppercase"/>
+    <input id="hitter-name" placeholder="Your name" maxlength="20"/>
+    <button class="btn-primary" onclick="joinRoom()">Join Game</button>
+    <button class="btn-secondary" onclick="showScreen('screen-landing')">← Back</button>
+  </div>
+</div>
+
+<!-- HITTER WAITING -->
+<div class="screen" id="screen-hitter-waiting">
+  <div class="card">
+    <h2>🏏 Waiting for Pitcher...</h2>
+    <div class="info-box"><span class="status-dot"></span>Connected to room <strong id="waiting-code"></strong></div>
+    <p style="color:#64748b;font-size:.9rem">The pitcher will start the round shortly. Get ready!</p>
+    <ul class="player-list" id="waiting-players"></ul>
+  </div>
+</div>
+
+<!-- HITTER HITTING -->
+<div class="screen" id="screen-hitter-hitting">
+  <div class="card">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+      <h2 style="margin:0">Submit Words</h2>
+      <span class="round-badge" id="hitting-round">Round 1</span>
+    </div>
+    <div class="info-box">Listen to the pitcher's category and submit your words!</div>
+    <div class="word-input-row">
+      <input id="word-input" placeholder="Type a word..." maxlength="40" onkeydown="if(event.key==='Enter')submitWord()"/>
+      <button class="btn-primary" onclick="submitWord()">Submit</button>
+    </div>
+    <p class="section-label">Your submitted words</p>
+    <div id="my-words"></div>
+  </div>
+</div>
+
+<!-- PITCHER VALIDATING -->
+<div class="screen" id="screen-pitcher-validating">
+  <div class="card">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+      <h2 style="margin:0">Validate Words</h2>
+      <span class="round-badge" id="validating-round">Round 1</span>
+    </div>
+    <div class="info-box">Remove words that don't fit the category. Unique words (submitted by only one player) earn points.</div>
+
+    <div class="submissions-area">
+      <p class="section-label">⭐ Unique Words (tap ✕ to remove)</p>
+      <div id="unique-words"></div>
+      <hr class="divider"/>
+      <p class="section-label">👥 Duplicate Words (submitted by multiple players)</p>
+      <div id="duplicate-words"></div>
+    </div>
+  </div>
+  <div class="card">
+    <button class="btn-success" onclick="awardPoints()">✅ Award Points & Next Round</button>
+    <button class="btn-danger" onclick="endGame()">🏁 End Game</button>
+  </div>
+</div>
+
+<!-- HITTER WAITING VALIDATION -->
+<div class="screen" id="screen-hitter-validating">
+  <div class="card">
+    <h2>⏳ Pitcher is Validating...</h2>
+    <div class="info-box"><span class="status-dot"></span>Wait while the pitcher reviews the words.</div>
+    <p class="section-label">Your words this round</p>
+    <div id="hitter-submitted-words"></div>
+  </div>
+</div>
+
+<!-- SCORES (between rounds) -->
+<div class="screen" id="screen-scores">
+  <div class="card">
+    <h2>📊 Scores</h2>
+    <ul class="player-list" id="scores-list"></ul>
+  </div>
+  <div class="card" id="scores-actions"></div>
+</div>
+
+<!-- GAME ENDED -->
+<div class="screen" id="screen-ended">
+  <div class="card">
+    <h2>🏆 Game Over!</h2>
+    <ul class="player-list" id="final-scores"></ul>
+  </div>
+  <div class="card">
+    <button class="btn-primary" onclick="showScreen('screen-landing')">🏠 Home</button>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script>
+const API = 'https://five-seconds-rule.YOUR_SUBDOMAIN.workers.dev';
+
+let state = {
+  role: null,       // 'pitcher' | 'hitter'
+  name: null,
+  roomCode: null,
+  round: 0,
+  ws: null,
+  myWords: [],      // hitter's submitted words this round
+};
+
+// ─── Utilities ───────────────────────────────────────────────────────────────
+
+function showScreen(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+}
+
+function toast(msg) {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.style.opacity = 1;
+  setTimeout(() => el.style.opacity = 0, 2500);
+}
+
+async function api(path, method = 'GET', body = null) {
+  const opts = { method, headers: { 'Content-Type': 'application/json' } };
+  if (body) opts.body = JSON.stringify(body);
+  const res = await fetch(API + path, opts);
+  return res.json();
+}
+
+// ─── WebSocket ────────────────────────────────────────────────────────────────
+
+function connectWS() {
+  const wsBase = API.replace('https://', 'wss://').replace('http://', 'ws://');
+  const url = `${wsBase}?room=${state.roomCode}&name=${encodeURIComponent(state.name)}&role=${state.role}`;
+  state.ws = new WebSocket(url);
+
+  state.ws.onopen = () => {
+    state.ws.send(JSON.stringify({ type: 'init', roomCode: state.roomCode }));
+  };
+
+  state.ws.onmessage = (evt) => {
+    const msg = JSON.parse(evt.data);
+    handleWS(msg);
+  };
+
+  state.ws.onclose = () => {
+    setTimeout(connectWS, 2000); // auto-reconnect
+  };
+}
+
+function handleWS(msg) {
+  if (msg.type === 'player_joined') {
+    refreshLobbyPlayers();
+    if (state.role === 'hitter') refreshWaitingPlayers();
+    toast(`${msg.name} joined!`);
+  }
+
+  if (msg.type === 'state') {
+    const d = msg.data;
+    if (!d) return;
+
+    if (d.status === 'hitting') {
+      state.round = d.round;
+      if (state.role === 'hitter') {
+        state.myWords = [];
+        renderMyWords();
+        document.getElementById('hitting-round').textContent = `Round ${d.round}`;
+        showScreen('screen-hitter-hitting');
+      }
+    }
+
+    if (d.status === 'validating') {
+      if (state.role === 'hitter') {
+        renderHitterSubmittedWords();
+        showScreen('screen-hitter-validating');
+      }
+    }
+
+    if (d.status === 'lobby' && d.scores) {
+      renderScores(d.scores, false);
+    }
+
+    if (d.status === 'ended') {
+      renderScores(d.scores, true);
+    }
+  }
+
+  if (msg.type === 'word_submitted' && state.role === 'pitcher') {
+    toast(`${msg.player}: "${msg.word}"`);
+  }
+}
+
+// ─── Pitcher Actions ──────────────────────────────────────────────────────────
+
+async function createRoom() {
+  const name = document.getElementById('pitcher-name').value.trim();
+  if (!name) return toast('Enter your name');
+  const data = await api('/api/room', 'POST', { pitcherName: name });
+  if (data.error) return toast(data.error);
+
+  state.role = 'pitcher';
+  state.name = name;
+  state.roomCode = data.code;
+
+  document.getElementById('lobby-code').textContent = data.code;
+  await refreshLobbyPlayers();
+  connectWS();
+  showScreen('screen-pitcher-lobby');
+}
+
+async function refreshLobbyPlayers() {
+  const data = await api(`/api/room/${state.roomCode}`);
+  const ul = document.getElementById('lobby-players');
+  ul.innerHTML = data.players.map(p =>
+    `<li>${p.name === state.name ? `<span class="badge pitcher">You (Pitcher)</span>` : p.name}
+     <span style="color:#64748b;font-size:.8rem">${p.points} pts</span></li>`
+  ).join('');
+}
+
+async function refreshWaitingPlayers() {
+  const data = await api(`/api/room/${state.roomCode}`);
+  const ul = document.getElementById('waiting-players');
+  ul.innerHTML = data.players.map(p =>
+    `<li>${p.name} <span style="color:#64748b;font-size:.8rem">${p.points} pts</span></li>`
+  ).join('');
+}
+
+async function startRound() {
+  const data = await api(`/api/room/${state.roomCode}/start`, 'POST');
+  state.round = data.round;
+  document.getElementById('validating-round').textContent = `Round ${data.round}`;
+
+  // Notify hitters via WS
+  state.ws.send(JSON.stringify({ type: 'start_round', round: data.round }));
+  toast('Round started! Shout your category!');
+}
+
+async function closePeriod() {
+  const data = await api(`/api/room/${state.roomCode}/close`, 'POST');
+  renderValidation(data.submissions);
+
+  // Notify hitters
+  state.ws.send(JSON.stringify({ type: 'close_hitting', submissions: data.submissions }));
+  showScreen('screen-pitcher-validating');
+}
+
+function renderValidation(submissions) {
+  const wordCount = {};
+  submissions.filter(s => s.valid).forEach(s => {
+    wordCount[s.word] = (wordCount[s.word] || 0) + 1;
+  });
+
+  const unique = submissions.filter(s => s.valid && wordCount[s.word] === 1);
+  const dupes = submissions.filter(s => s.valid && wordCount[s.word] > 1);
+
+  document.getElementById('unique-words').innerHTML = unique.length
+    ? unique.map(s =>
+        `<span class="word-tag">
+          <strong>${s.word}</strong> <small style="color:#64748b">(${s.player_name})</small>
+          <button class="remove-btn" onclick="removeWord(${s.id})">✕</button>
+        </span>`
+      ).join('')
+    : '<p style="color:#64748b;font-size:.85rem">No unique words</p>';
+
+  const seen = new Set();
+  document.getElementById('duplicate-words').innerHTML = dupes.length
+    ? dupes.filter(s => { if (seen.has(s.word)) return false; seen.add(s.word); return true; })
+        .map(s => `<span class="word-tag duplicate"><strong>${s.word}</strong></span>`).join('')
+    : '<p style="color:#64748b;font-size:.85rem">No duplicates</p>';
+}
+
+async function removeWord(id) {
+  const data = await api(`/api/room/${state.roomCode}/remove`, 'POST', { id });
+  renderValidation(data.submissions);
+}
+
+async function awardPoints() {
+  const data = await api(`/api/room/${state.roomCode}/award`, 'POST');
+  const scores = {};
+  data.players.forEach(p => scores[p.name] = p.points);
+
+  state.ws.send(JSON.stringify({ type: 'round_done', scores }));
+  renderScores(scores, false);
+}
+
+async function endGame() {
+  const data = await api(`/api/room/${state.roomCode}/end`, 'POST');
+  const scores = {};
+  data.players.forEach(p => scores[p.name] = p.points);
+  state.ws.send(JSON.stringify({ type: 'game_ended', scores }));
+  renderScores(scores, true);
+}
+
+// ─── Hitter Actions ───────────────────────────────────────────────────────────
+
+async function joinRoom() {
+  const code = document.getElementById('join-code').value.trim().toUpperCase();
+  const name = document.getElementById('hitter-name').value.trim();
+  if (!code || !name) return toast('Enter code and name');
+
+  const data = await api('/api/room/join', 'POST', { code, name });
+  if (data.error) return toast(data.error);
+
+  state.role = 'hitter';
+  state.name = name;
+  state.roomCode = code;
+
+  document.getElementById('waiting-code').textContent = code;
+  await refreshWaitingPlayers();
+  connectWS();
+  showScreen('screen-hitter-waiting');
+}
+
+async function submitWord() {
+  const input = document.getElementById('word-input');
+  const word = input.value.trim();
+  if (!word) return;
+
+  const data = await api(`/api/room/${state.roomCode}/submit`, 'POST', {
+    playerName: state.name, word, round: state.round
+  });
+
+  if (data.ok) {
+    state.myWords.push(word);
+    renderMyWords();
+    state.ws.send(JSON.stringify({ type: 'word_submitted', word }));
+    input.value = '';
+    input.focus();
+  }
+}
+
+function renderMyWords() {
+  document.getElementById('my-words').innerHTML = state.myWords.length
+    ? state.myWords.map(w => `<span class="word-tag">${w}</span>`).join('')
+    : '<p style="color:#64748b;font-size:.85rem">No words yet</p>';
+}
+
+function renderHitterSubmittedWords() {
+  document.getElementById('hitter-submitted-words').innerHTML = state.myWords.length
+    ? state.myWords.map(w => `<span class="word-tag">${w}</span>`).join('')
+    : '<p style="color:#64748b;font-size:.85rem">You submitted no words</p>';
+}
+
+// ─── Scores ───────────────────────────────────────────────────────────────────
+
+function renderScores(scores, ended) {
+  const sorted = Object.entries(scores).sort((a, b) => b[1] - a[1]);
+  const maxPts = sorted[0]?.[1] ?? 0;
+
+  const listId = ended ? 'final-scores' : 'scores-list';
+  const screen = ended ? 'screen-ended' : 'screen-scores';
+
+  document.getElementById(listId).innerHTML = sorted.map(([name, pts], i) =>
+    `<li class="score-row ${pts === maxPts && ended ? 'winner' : ''}">
+      <span>${ended && i === 0 ? '🏆 ' : ''}${name}</span>
+      <span class="score-pts">${pts} pts</span>
+    </li>`
+  ).join('');
+
+  if (!ended) {
+    const actions = document.getElementById('scores-actions');
+    if (state.role === 'pitcher') {
+      actions.innerHTML = `
+        <button class="btn-primary" onclick="startRound()">▶ Next Round</button>
+        <button class="btn-danger" onclick="endGame()">🏁 End Game</button>`;
+    } else {
+      actions.innerHTML = `<p style="color:#64748b;text-align:center">Waiting for pitcher to start next round...</p>`;
+    }
+  }
+
+  showScreen(screen);
+}
+
+// ─── Reset ────────────────────────────────────────────────────────────────────
+
+async function resetAll() {
+  if (!confirm('Reset ALL game data? This cannot be undone.')) return;
+  await api('/api/reset', 'DELETE');
+  toast('All data reset!');
+  showScreen('screen-landing');
+}
+
+// Add close period button dynamically when pitcher is in hitting phase
+// (pitcher sees lobby while hitters are hitting)
+document.getElementById('screen-pitcher-lobby').querySelector('.card:last-child').insertAdjacentHTML(
+  'afterbegin',
+  `<button class="btn-success" id="btn-close" style="display:none" onclick="closePeriod()">🛑 Close Hitting Period</button>`
+);
+
+// Show close button when round is active
+const origStartRound = startRound;
+startRound = async function() {
+  await origStartRound();
+  document.getElementById('btn-close').style.display = 'block';
+  showScreen('screen-pitcher-lobby');
+};
+</script>
+</body>
+</html>
